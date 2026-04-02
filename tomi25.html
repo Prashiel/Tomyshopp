@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TomyShop</title>
+
+<style>
+body { margin:0; font-family:Arial; background:#111; color:white; }
+
+.navbar {
+  display:flex;
+  justify-content:space-between;
+  padding:15px;
+  background:black;
+}
+
+.navbar h1 { color:red; }
+
+button {
+  background:red;
+  border:none;
+  color:white;
+  padding:8px;
+  cursor:pointer;
+  margin-top:5px;
+}
+
+.menu {
+  display:none;
+  background:#222;
+  padding:10px;
+}
+
+.menu a {
+  display:block;
+  padding:8px;
+  cursor:pointer;
+}
+
+.section { display:none; padding:20px; }
+.active { display:block; }
+
+.product {
+  background:#222;
+  padding:15px;
+  margin-bottom:15px;
+  border-radius:10px;
+}
+
+.product img { width:100%; border-radius:10px; }
+
+.box {
+  display:none;
+  position:fixed;
+  top:15%;
+  left:10%;
+  width:80%;
+  background:black;
+  padding:20px;
+  border-radius:10px;
+}
+
+.box input, .box select {
+  width:100%;
+  margin:10px 0;
+  padding:10px;
+}
+
+.slide {
+  animation: slideIn 0.5s ease;
+}
+
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity:0; }
+  to { transform: translateX(0); opacity:1; }
+}
+</style>
+</head>
+
+<body>
+
+<div class="navbar">
+  <h1>TomyShop</h1>
+  <div>
+    <button onclick="toggleMenu()">☰</button>
+    <button id="authBtn" onclick="handleAuth()">Login</button>
+  </div>
+</div>
+
+<div class="menu" id="menu">
+  <a onclick="showSection('shop')">Shop</a>
+  <a onclick="showSection('about')">About</a>
+  <a onclick="showSection('store')">Store</a>
+  <a id="profileMenu" onclick="showSection('profile')" style="display:none;">Profile</a>
+  <a id="orderMenu" onclick="showSection('orders')" style="display:none;">Pesanan</a>
+</div>
+
+<!-- SHOP -->
+<div id="shop" class="section active">
+  <div id="adminBox" style="display:none;">
+    <h2>Tambah Produk (Admin)</h2>
+    <input id="pNama" placeholder="Nama Produk">
+    <input id="pHarga" placeholder="Harga">
+    <input id="pGambar" placeholder="Link Gambar">
+    <button onclick="tambahProduk()">Tambah</button>
+    <hr>
+  </div>
+
+  <h2>Produk</h2>
+  <div id="listProduk"></div>
+</div>
+
+<!-- ORDERS -->
+<div id="orders" class="section">
+  <h2>Pesanan Masuk</h2>
+  <div id="listOrder"></div>
+</div>
+
+<!-- ABOUT -->
+<div id="about" class="section">
+  <h2>Tentang TomyShop</h2>
+  <p><b>TomyShop</b> adalah toko sparepart motor terpercaya yang menyediakan produk berkualitas tinggi.</p>
+  <p>Kami menyediakan kampas rem, busi, karburator, dan lainnya dengan harga terjangkau.</p>
+  <ul>
+    <li>✔️ Produk original</li>
+    <li>✔️ Harga bersaing</li>
+    <li>✔️ Pengiriman cepat</li>
+  </ul>
+</div>
+
+<!-- STORE -->
+<div id="store" class="section">
+  <h2>Informasi Toko</h2>
+  <p>📍 Jl. Raya Otomotif No.123, Jakarta Timur</p>
+  <p>🕒 Senin - Sabtu (08.00 - 17.00)</p>
+  <p>💳 Transfer, E-Wallet, COD</p>
+</div>
+
+<!-- PROFILE -->
+<div id="profile" class="section">
+  <h2>Profil</h2>
+  <p>Username: <span id="profileUser">-</span></p>
+
+  <input id="newUser" placeholder="Username baru">
+  <button onclick="gantiUsername()">Ganti Username</button>
+
+  <input id="oldPass" placeholder="Password lama">
+  <input id="newPass" placeholder="Password baru">
+  <button onclick="gantiPassword()">Ganti Password</button>
+</div>
+
+<!-- LOGIN -->
+<div class="box" id="loginBox">
+  <h3>Login</h3>
+  <input id="loginUser">
+  <input id="loginPass" type="password">
+  <button onclick="login()">Masuk</button>
+  <p onclick="openRegister()">Daftar</p>
+</div>
+
+<!-- REGISTER -->
+<div class="box" id="registerBox">
+  <h3>Daftar</h3>
+  <input id="regUser">
+  <input id="regPass" type="password">
+  <button onclick="register()">Daftar</button>
+</div>
+
+<!-- BELI -->
+<div class="box" id="buyBox">
+  <h3>Beli</h3>
+  <p id="buyNama"></p>
+  <input id="alamat" placeholder="Alamat">
+  <select id="metode">
+    <option value="">Pilih Metode</option>
+    <option>Transfer</option>
+    <option>COD</option>
+  </select>
+  <button onclick="checkout()">Checkout</button>
+</div>
+
+<script>
+let users=[], currentUser=null, produkList=[], orders=[], produkDipilih=null;
+
+/* MENU */
+function toggleMenu(){
+  menu.style.display = menu.style.display==="block"?"none":"block";
+}
+
+function showSection(id){
+  document.querySelectorAll(".section").forEach(s=>{
+    s.classList.remove("active","slide");
+  });
+  let sec=document.getElementById(id);
+  sec.classList.add("active","slide");
+  menu.style.display="none";
+}
+
+/* LOGIN TOGGLE */
+function openLogin(){
+  loginBox.style.display = loginBox.style.display==="block"?"none":"block";
+  registerBox.style.display="none";
+}
+
+function openRegister(){
+  registerBox.style.display="block";
+  loginBox.style.display="none";
+}
+
+function handleAuth(){
+  if(currentUser) logout();
+  else openLogin();
+}
+
+function register(){
+  users.push({user:regUser.value, pass:regPass.value});
+  alert("Akun dibuat!");
+  registerBox.style.display="none";
+}
+
+/* LOGIN */
+function login(){
+  let u=loginUser.value,p=loginPass.value;
+
+  if(u==="admin"&&p==="admin"){
+    currentUser={user:"admin"};
+    adminBox.style.display="block";
+    orderMenu.style.display="block";
+    tampilkanOrder();
+  } else {
+    let f=users.find(x=>x.user===u&&x.pass===p);
+    if(!f) return alert("Salah!");
+    currentUser=f;
+    adminBox.style.display="none";
+    orderMenu.style.display="none";
+  }
+
+  profileUser.innerText=u;
+  loginBox.style.display="none";
+  profileMenu.style.display="block";
+  authBtn.innerText="Logout";
+
+  tampilkanProduk(); // 🔥 FIX
+}
+
+/* LOGOUT */
+function logout(){
+  currentUser=null;
+  profileMenu.style.display="none";
+  orderMenu.style.display="none";
+  adminBox.style.display="none";
+  authBtn.innerText="Login";
+  profileUser.innerText="-";
+
+  tampilkanProduk(); // 🔥 FIX
+}
+
+/* PRODUK */
+function tambahProduk(){
+  if(!currentUser||currentUser.user!=="admin") return alert("Admin only!");
+  produkList.push({nama:pNama.value,harga:pHarga.value,gambar:pGambar.value});
+  tampilkanProduk();
+}
+
+function hapusProduk(i){
+  if(!currentUser || currentUser.user!=="admin") return alert("Hanya admin!");
+  if(confirm("Yakin hapus produk?")){
+    produkList.splice(i,1);
+    tampilkanProduk();
+  }
+}
+
+function tampilkanProduk(){
+  listProduk.innerHTML="";
+
+  produkList.forEach((p,i)=>{
+    let tombolHapus = "";
+
+    if(currentUser && currentUser.user==="admin"){
+      tombolHapus = `<button onclick="hapusProduk(${i})">Hapus</button>`;
+    }
+
+    listProduk.innerHTML += `
+    <div class="product">
+      <img src="${p.gambar}">
+      <h4>${p.nama}</h4>
+      <p>Rp ${p.harga}</p>
+
+      <button onclick="beliProduk(${i})">Beli</button>
+      ${tombolHapus}
+    </div>`;
+  });
+}
+
+/* BELI */
+function beliProduk(i){
+  if(!currentUser) return alert("Login dulu!");
+  produkDipilih=produkList[i];
+  buyNama.innerText=produkDipilih.nama;
+  buyBox.style.display="block";
+}
+
+/* CHECKOUT */
+function checkout(){
+  if(!alamat.value||!metode.value) return alert("Isi semua!");
+
+  orders.push({
+    user:currentUser.user,
+    produk:produkDipilih.nama,
+    harga:produkDipilih.harga,
+    alamat:alamat.value,
+    metode:metode.value,
+    status:"Menunggu",
+    alasan:""
+  });
+
+  alert("Pesanan masuk!");
+  buyBox.style.display="none";
+  alamat.value="";
+}
+
+/* ADMIN ORDER */
+function tampilkanOrder(){
+  listOrder.innerHTML="";
+  orders.forEach((o,i)=>{
+    listOrder.innerHTML+=`
+    <div class="product">
+      <h4>${o.produk}</h4>
+      <p>Status: ${o.status}</p>
+      ${o.status==="Menunggu" ? `
+        <button onclick="konfirmasi(${i})">Terima</button>
+        <button onclick="tolak(${i})">Tolak</button>` : ""}
+      ${o.alasan ? "<p>Alasan: "+o.alasan+"</p>" : ""}
+    </div>`;
+  });
+}
+
+function konfirmasi(i){
+  orders[i].status="Diterima";
+  tampilkanOrder();
+}
+
+function tolak(i){
+  let alasan=prompt("Alasan:");
+  if(!alasan) return;
+  orders[i].status="Ditolak";
+  orders[i].alasan=alasan;
+  tampilkanOrder();
+}
+
+/* PROFILE */
+function gantiUsername(){
+  if(!currentUser||currentUser.user==="admin") return;
+  currentUser.user=newUser.value;
+  profileUser.innerText=newUser.value;
+}
+
+function gantiPassword(){
+  if(!currentUser||currentUser.user==="admin") return;
+  if(currentUser.pass!==oldPass.value) return alert("Salah!");
+  currentUser.pass=newPass.value;
+  alert("Berhasil!");
+}
+</script>
+
+</body>
+</html>
